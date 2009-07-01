@@ -118,7 +118,7 @@ plt.world.config = plt.world.config || {};
   };
 
 
-   plt.world.config.Kernel.initialEffect = function(effect) {
+    plt.world.config.Kernel.initialEffect = function(effect) {
 	return function(config) {
 	    return config.update('initialEffect', effect);
 	};

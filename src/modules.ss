@@ -63,11 +63,11 @@
                                (bf 'on-tick* module-path 3 false "plt.world.config.Kernel.onTick_star_")
                                (bf 'on-mouse module-path 1 false "plt.world.config.Kernel.onMouse")
                                (bf 'on-mouse* module-path 2 false "plt.world.config.Kernel.onMouse_star_")
-                               
-                               (bf 'on-key module-path 1 false "org.plt.world.config.Kernel.onKey")
-                               (bf 'on-key* module-path 2 false "org.plt.world.config.Kernel.onKey_star_")
 
 			       (bf 'initial-effect module-path 1 false "plt.world.config.Kernel.initialEffect")
+
+                               (bf 'on-key module-path 1 false "plt.world.config.Kernel.onKey")
+                               (bf 'on-key* module-path 2 false "plt.world.config.Kernel.onKey_star_")
                                
                                (make-binding:function
                                 'on-location-change module-path 1 false
