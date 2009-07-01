@@ -122,6 +122,10 @@ plt.world.Kernel = plt.world.Kernel || {};
 	config = config.update('changeWorld', plt.world.Kernel.updateWorld);
 	plt.world.config.CONFIG = config;
 
+	if (config.lookup('initialEffect')) {
+	    org.plt.world.Kernel.applyEffect(config.lookup('initialEffect'));
+	}
+
 	if (config.lookup('onKey')) {
 	    newWindow.onkeypress = function(e) {
 		if (! stopped) {
