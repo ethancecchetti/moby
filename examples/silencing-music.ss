@@ -95,7 +95,9 @@
 
 
 (big-bang WIDTH HEIGHT initial-world
+          (initial-effect (list (make-effect:play-sound-url init-song)
+                                (make-effect:set-wake-lock)))
           (on-tick* 1 update get-effects)
           #;(on-redraw render)
-          (on-shake* reset-world get-effects)
-          #;(stop-when* shut-off? stop-music))
+          (on-shake* reset-world change-volume)
+          (stop-when shut-off? #;stop-music))

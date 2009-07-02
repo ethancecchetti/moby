@@ -39,7 +39,7 @@
 
 ;; check-wake-lock: world -> effect
 (define (check-wake-lock a-world)
-  (if (world-wake-lock a-world)
+  (if (not (world-wake-lock a-world))
       (make-effect:set-wake-lock 6)
       (make-effect:release-wake-lock)))
 
@@ -67,7 +67,7 @@
 
 (define button-up (js-button up))
 (define button-down (js-button down))
-(define button-sleep (js-button toggle-sleep))
+(define button-sleep (js-button* toggle-sleep check-wake-lock))
 
 ;; converts a number 1-4 into the letter corresponding to that tone
 ;; number->letter: number -> string
@@ -100,5 +100,5 @@
 (js-big-bang initial-world
              '()
              (on-draw render render-css)
-             (on-tick* 1 ignore check-wake-lock)
+             #;(on-tick* 1 ignore check-wake-lock)
              (on-shake* update ring))
