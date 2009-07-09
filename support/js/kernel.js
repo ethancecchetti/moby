@@ -7,14 +7,14 @@ var plt = plt || {};
 (function() {
  
     function chainTest(test, first, second, rest) {
-  if (! test(first, second))
+	if (! test(first, second).valueOf())
       return false;
   if (rest.length == 0)
       return true;
-  if (! test(second, rest[0]))
+  if (! test(second, rest[0]).valueOf())
       return false;
   for(var i = 0; i < rest.length - 1; i++) {
-      if (! test(rest[i], rest[i+1]))
+      if (! test(rest[i], rest[i+1]).valueOf())
     return false;
   }
   return true;
@@ -25,45 +25,46 @@ var plt = plt || {};
   var i;
   var best = first;
   for(i = 0; i < rest.length; i++) {
-      if (! comparator(best, rest[i])) {
+      if (! (comparator(best, rest[i])).valueOf()) {
     best = rest[i];
       }
   }
   return best;
     }
  
- 
+
+
     plt.Kernel = {
   Struct: function () {
   },
   
   struct_question_: function(thing) {
-      return thing instanceof this.Struct;
+	    return (thing instanceof this.Struct);
   },
   
   number_question_ : function(x){
-      return (x instanceof plt.types.Rational || 
-	      x instanceof plt.types.FloatPoint ||
-	      x instanceof plt.types.Complex);
+	    return (x instanceof plt.types.Rational || 
+			   x instanceof plt.types.FloatPoint ||
+			   x instanceof plt.types.Complex);
   },
  
   equal_question_ : function(x, y) {
-    if (plt.Kernel.number_question_(x) && 
-	plt.Kernel.number_question_(y)) {
-	  if ("isEqual" in x) {
-	    return plt.types.NumberTower.equal(x, y);
-	  } else if ("isEqual" in y) {
-	    return plt.types.NumberTower.equal(y, x);
-	  } else {
-	    return x == y;
-	  }
-    } else {
-      return x.isEqual(y);
-    }
-  },
+	    if (plt.Kernel.number_question_(x).valueOf() && 
+		plt.Kernel.number_question_(y).valueOf()) {
+		if ("isEqual" in x) {
+		    return plt.types.NumberTower.equal(x, y);
+		} else if ("isEqual" in y) {
+		    return plt.types.NumberTower.equal(y, x);
+		} else {
+		    return (x == y);
+		}
+	    } else {
+		return x.isEqual(y);
+	    }
+	},
   
   eq_question_ : function(x, y){
-	return x == y;
+	    return (x == y);
   }, 
  
   
@@ -250,21 +251,13 @@ var plt = plt || {};
            rest);
   },
  
-  symbol_equal__question_: function(x, y) {
-      return x.isEqual(y);
-  },
  
-  not : function(x) {
-      return !x;
-  },
-
-
   inexact_dash__greaterthan_exact: function(x) {
     return plt.types.NumberTower.toExact(x);
   },
  
   number_dash__greaterthan_string: function(x) {
-      return plt.types.String.makeInstance(x.toString());
+      return plt.types.String.makeInstance(x.toWrittenString());
   },
   
   conjugate: function(x){
@@ -308,7 +301,9 @@ var plt = plt || {};
   },
   
   complex_question_ : function(x){
-	return x instanceof plt.types.Complex || x instanceof plt.types.Rational || x instanceof plt.types.FloatPoint;
+	    return (x instanceof plt.types.Complex || 
+			   x instanceof plt.types.Rational ||
+			   x instanceof plt.types.FloatPoint);
   },
   
   cosh : function(x) {
@@ -359,44 +354,29 @@ var plt = plt || {};
 	return plt.types.Complex.makeInstance(x.toFloat(), y.toFloat());
   },
  
-  max : function(first, rest){
-	var i, ret = first;
-	for (i = 0; i < rest.length; i++)
-		if (plt.types.NumberTower.greaterThan(rest[i], ret))
-			ret = rest[i];
-	return ret;
-  },
-  
-  min : function(first, rest){
-	var i, ret = first;
-	for (i = 0; i < rest.length; i++)
-		if (plt.types.NumberTower.lessThan(rest[i], ret))
-			ret = rest[i];
-	return ret;
-  },
-  
   string_equal__question_ : function(first, second, rest){
-	return chainTest(function(x, y){return x.toString() == y.toString();}, first, second, rest);
+	    return chainTest(function(x, y){return x == y;}, first, second, rest);
   },
   
   string_lessthan__equal__question_: function(first, second, rest){
-	return chainTest(function(x, y){return x.toString() <= y.toString();}, first, second, rest);
+	return chainTest(function(x, y){return x <= y;}, first, second, rest);
   },
   
   string_lessthan__question_: function(first, second, rest){
-	return chainTest(function(x, y){return x.toString() < y.toString();}, first, second, rest);
+	return chainTest(function(x, y){return x < y;}, first, second, rest);
   },
   
   string_greaterthan__equal__question_: function(first, second, rest){
-	return chainTest(function(x, y){return x.toString() >= y.toString();}, first, second, rest);
+	return chainTest(function(x, y){return x >= y;}, first, second, rest);
   },
   
   string_greaterthan__question_: function(first, second, rest){
-	return chainTest(function(x, y){return x.toString() > y.toString();}, first, second, rest);
+	return chainTest(function(x, y){return x > y;}, first, second, rest);
   },
   
   quotient : function(x, y){
-	return plt.types.Rational.makeInstance(plt.types.NumberTower.divide(x,y).floor(), 1);
+	    return plt.types.Rational.makeInstance(plt.types.NumberTower.divide(x,y).floor().toInteger(),
+						   1);
   },
   
   remainder : function(x, y) {
@@ -405,7 +385,7 @@ var plt = plt || {};
   
   real_question_ : function(x){
       return (plt.Kernel.number_question_(x) &&
-	      x.isReal());
+		     x.isReal());
   },
   
   
@@ -414,16 +394,12 @@ var plt = plt || {};
   },
   
   sgn : function(x){
-	if (this.positive_question_(x))
+	    if (this.positive_question_(x).valueOf())
 		return plt.types.Rational.ONE;
-	if (this.negative_question_(x))
+	    if (this.negative_question_(x).valueOf())
 		return plt.types.Rational.NEGATIVE_ONE;
 	else
 		return plt.types.Rational.ZERO;
-  },
-  
-  zero_question_ : function(x){
-		return plt.types.NumberTower.equal(x, plt.types.Rational.ZERO);
   },
   
   boolean_equal__question_ : function(x, y){
@@ -431,32 +407,29 @@ var plt = plt || {};
   },
   
   boolean_question_ : function(x){
-	return x == plt.types.Logic.TRUE || x == plt.types.Logic.FALSE;
-  },
+	    return (x == plt.types.Logic.TRUE || x == plt.types.Logic.FALSE);
+	},
   
   false_question_ : function(x){
-	return  x == plt.types.Logic.FALSE;
+	    return (x == plt.types.Logic.FALSE);
   },
   
   not : function(x){
-	return x == plt.types.Logic.FALSE ? plt.types.Logic.TRUE : plt.types.Logic.FALSE;
+	    return (!(x.valueOf())) ? plt.types.Logic.TRUE : plt.types.Logic.FALSE;
   },
   
   symbol_dash__greaterthan_string : function(x){
-	return plt.types.String.makeInstance(x);
+	return plt.types.String.makeInstance(x.val);
   },
   
   symbol_equal__question_ : function(x, y){
-	return x.val == y.val;
+	    return (x.val == y.val);
   },
   
   symbol_question_ : function(x){
-	return x instanceof plt.types.Symbol;
+	    return (x instanceof plt.types.Symbol);
   },
   
-  empty_question_ : function(x){
-	return x instanceof plt.types.Empty;
-  },
   
   append : function(first, rest){
         var ret = first;
@@ -576,6 +549,9 @@ var plt = plt || {};
   
   list_star_ : function(items, otherItems){
       var lastListItem = otherItems.pop();
+      if (lastListItem == undefined || ! lastListItem instanceof plt.types.Cons) {
+	  throw new TypeError("list*: " + lastListItem + " not a list");
+      }
       otherItems.unshift(items);
       return plt.Kernel.append(plt.Kernel.list(otherItems), [lastListItem]);
   },
@@ -589,22 +565,22 @@ var plt = plt || {};
   
   member : function(item, lst){
 	while (!lst.isEmpty()){
-		if (plt.Kernel.equal_question_(item, lst.first()))
-			return true;
+	    if (plt.Kernel.equal_question_(item, lst.first()).valueOf())
+			return plt.types.Logic.TRUE;
 		lst = lst.rest();
 	}
 	
-	return false;
+	return plt.types.Logic.FALSE;
   },
   
   memq : function(item, lst){
 	while (!lst.isEmpty()){
-		if (plt.Kernel.eq_question_(item, lst.first()))
+	    if (plt.Kernel.eq_question_(item, lst.first()).valueOf())
 			return lst;
 		lst = lst.rest();
 	}
 	
-	return false;
+	return plt.types.Logic.FALSE;
   },
   
   eqv_question_ : function(x, y){
@@ -613,12 +589,12 @@ var plt = plt || {};
   
   memv : function(item, lst){
 	while (!lst.isEmpty()){
-		if (plt.Kernel.eqv_question_(item, lst.first()))
+	    if (plt.Kernel.eqv_question_(item, lst.first()).valueOf())
 			return lst;
 		lst = lst.rest();
 	}
 	
-	return false;
+	return plt.types.Logic.FALSE;
   },
   
   null_question_ : function(x){
@@ -636,7 +612,7 @@ var plt = plt || {};
   string_dash__greaterthan_number : function(str){
 	var aNum = str * 1;
 	if (isNaN(aNum))
-		return false;
+		return plt.types.Logic.FALSE;
 	return plt.types.FloatPoint.makeInstance(aNum);
   },
   
@@ -697,7 +673,7 @@ var plt = plt || {};
   },
   
   substring : function(str, begin, end){
-	return str.toString().substring(begin.toInteger(), end.toInteger());
+	return str.substring(begin.toInteger(), end.toInteger());
   },
 
   char_question_: function(x) {
@@ -715,7 +691,7 @@ var plt = plt || {};
   },
   
   char_dash_alphabetic_question_ : function(c){
-	var str = c.val.toString();
+	var str = c.val;
 	return (str >= "a" && str <= "z") || (str >= "A" && str <= "Z");
   },
   
@@ -724,11 +700,11 @@ var plt = plt || {};
   },
   
   char_lessthan__question_ : function(first, second, rest){
-	return chainTest(function(x, y){return x.val.toString() < y.val.toString()}, first, second, rest);
+	return chainTest(function(x, y){return x.val < y.val}, first, second, rest);
   },
   
   char_lessthan__equal__question_ : function(first, second, rest){
-	return chainTest(function(x, y){return x.val.toString() <= y.val.toString()}, first, second, rest);
+	return chainTest(function(x, y){return x.val <= y.val}, first, second, rest);
   },
   
   char_greaterthan__question_ : function(first, second, rest){
@@ -772,7 +748,7 @@ var plt = plt || {};
   },
   
   char_dash_downcase : function(ch){
-	var down = ch.val.toString().toLowerCase();
+	var down = ch.val.toLowerCase();
 	return plt.types.Char.makeInstance(down);
   },
   
@@ -781,12 +757,12 @@ var plt = plt || {};
   },
   
   char_dash_numeric_question_ : function(ch){
-	var str = ch.val.toString();
+	var str = ch.val;
 	return (str >= "0" && str <= "9");
   },
   
   char_dash_upcase : function(ch){
-	var up = ch.val.toString().toUpperCase();
+	var up = ch.val.toUpperCase();
 	return plt.types.Char.makeInstance(up);
   },
   
@@ -798,10 +774,11 @@ var plt = plt || {};
 	return plt.Kernel.equal_question_(ch, plt.types.Char.makeInstance(" "));
   },
   
+  // list->string: (listof char) -> string
   list_dash__greaterthan_string : function(lst){
 	var ret = "";
 	while (!lst.isEmpty()){
-		ret += lst.first().val.toString();
+		ret += lst.first().val;
 		lst = lst.rest();
 	}
 	return plt.types.String.makeInstance(ret);
@@ -809,7 +786,7 @@ var plt = plt || {};
   
   make_dash_string : function(n, ch){
 	var ret = "";
-	var c = ch.val.toString();
+	var c = ch.val;
 	var i = plt.types.Rational.ZERO;
 	for (;  plt.Kernel._lessthan_(i, n, []); i = plt.Kernel.add1(i))
 		ret += c;
@@ -817,7 +794,7 @@ var plt = plt || {};
   },
   
   string_dash__greaterthan_list : function(str){
-	var s = str.toString();
+	var s = str;
 	var ret = plt.types.Empty.EMPTY;
 	for (var i = s.length - 1; i >= 0; i--){
 	    ret = plt.types.Cons.makeInstance
@@ -966,9 +943,18 @@ var plt = plt || {};
         if (other instanceof posn) {
             return (((plt.Kernel.equal_question_((posn_dash_y(this)),(posn_dash_y(other)))))&&((((plt.Kernel.equal_question_((posn_dash_x(this)),(posn_dash_x(other)))))&&(plt.types.Logic.TRUE))));
         } else {
-            return false;
+            return plt.types.Logic.FALSE;
         }
     } 
+
+    posn.prototype.toWrittenString = function() {
+	return "(make-posn " + this.x.toWrittenString() + " " + this.y.toWrittenString() + ")";
+    }
+
+    posn.prototype.toDisplayedString = function () {
+	return "(make-posn " + this.x.toDisplayedString() + " " + this.y.toDisplayedString();
+    }
+
     function make_dash_posn(id0,id1) { return new posn(id0,id1); }
     function posn_dash_x(obj) { return obj.x; }
     function posn_dash_y(obj) { return obj.y; }
@@ -982,15 +968,23 @@ var plt = plt || {};
     plt.Kernel.posn_dash_y = posn_dash_y;
  
  
+ 
+    plt.types.Logic = {
+	TRUE : true,
+	FALSE : false
+    };
+ 
+    Boolean.prototype.toWrittenString = function() {
+	if (this.valueOf()) { return "true"; }
+	return "false";
+    };
+    Boolean.prototype.toDisplayedString = Boolean.prototype.toWrittenString;
+
+
+
     plt.Kernel.error = function(msg, args) {
 	die(msg + ": " + args);
     }
- 
- 
-    plt.types.Logic = {
-  TRUE : true,
-  FALSE : false
-    };
  
  
     function die(msg) {
@@ -1010,10 +1004,24 @@ var plt = plt || {};
     };
 	
 	plt.types.String.prototype.isEqual = function(other){
-		return this.toString() == other.toString();
+		return this == other;
 	};
 	
+
+    plt.types.String.prototype.toWrittenString = function() {
+	return '"' + this.replace(/["\\]/g,
+	                       function(match, submatch, index) {
+                                   return "\\" + match;
+                               }) + '"';
+    }
+
+    plt.types.String.prototype.toDisplayedString = function() {
+        return this;
+    }
+
+
 	// Chars
+        // Char: string -> Char
 	plt.types.Char = function(val){
 		this.val = val;
 	};
@@ -1022,16 +1030,20 @@ var plt = plt || {};
 		return new plt.types.Char(val);
 	};
 
-	plt.types.Char.prototype.toString = function() {
+	plt.types.Char.prototype.toWrittenString = function() {
 	    return "#\\" + this.val;
 	};
+
+        plt.types.Char.prototype.toDisplayedString = function () {
+            return this.val;
+        };
 
 	plt.types.Char.prototype.getValue = function() {
 	    return this.val;
 	};
 
 	plt.types.Char.prototype.isEqual = function(other){
-		return other instanceof plt.types.Char && this.val.toString() == other.val.toString();
+		return other instanceof plt.types.Char && this.val == other.val;
 	};
 	
     // Symbols
@@ -1057,9 +1069,19 @@ var plt = plt || {};
       this.val == other.val;
     };
  
+
     plt.types.Symbol.prototype.toString = function() {
+        return this.val;
+    };
+
+    plt.types.Symbol.prototype.toWrittenString = function() {
   return this.val;
     };
+
+    plt.types.Symbol.prototype.toDisplayedString = function() {
+  return this.val;
+    };
+
  
  
  
@@ -1080,9 +1102,13 @@ var plt = plt || {};
     plt.types.Empty.prototype.isEmpty = function() {
   return true;
     };
-    plt.types.Empty.prototype.toString = function() { return "empty"; };
+    plt.types.Empty.prototype.toWrittenString = function() { return "empty"; };
+    plt.types.Empty.prototype.toDisplayedString = function() { return "empty"; };
+
+
 
  
+    // Empty.append: (listof X) -> (listof X)
     plt.types.Empty.prototype.append = function(b){
       return b;
     }
@@ -1099,7 +1125,7 @@ var plt = plt || {};
 
     plt.types.Cons.prototype.isEqual = function(other) {
       if (! (other instanceof plt.types.Cons)) {
-	return false;
+	return plt.types.Logic.FALSE;
       }
       return (plt.Kernel.equal_question_(this.first(), other.first()) &&
 	      plt.Kernel.equal_question_(this.rest(), other.rest()));
@@ -1117,9 +1143,8 @@ var plt = plt || {};
   return false;
     };
     
+    // Cons.append: (listof X) -> (listof X)
     plt.types.Cons.prototype.append = function(b){
-	if (this.isEmpty())
-	    return b;
 	if (b.isEmpty())
 	    return this;
 	var ret = b;
@@ -1132,14 +1157,25 @@ var plt = plt || {};
 	return ret;
     };
     
-    plt.types.Cons.prototype.toString = function() {
+    plt.types.Cons.prototype.toWrittenString = function() {
 	var texts = [];
 	var p = this;
 	while (! p.isEmpty()) {
-	    texts.push(p.first().toString());
+	    texts.push(p.first().toWrittenString());
 	    p = p.rest();
 	}
-	return "(" + texts.join(", ") + ")";
+	return "(" + texts.join(" ") + ")";
+    };
+
+
+    plt.types.Cons.prototype.toWrittenString = function() {
+	var texts = [];
+	var p = this;
+	while (! p.isEmpty()) {
+	    texts.push(p.first().toDisplayedString());
+	    p = p.rest();
+	}
+	return "(" + texts.join(" ") + ")";
     };
 
  
@@ -1167,13 +1203,16 @@ var plt = plt || {};
   this.d = d / divisor;
     };
  
-    plt.types.Rational.prototype.toString = function() {
+    plt.types.Rational.prototype.toWrittenString = function() {
   if (this.d == 1) {
       return this.n + "";
   } else {
       return this.n + "/" + this.d;
   }
     };
+
+    plt.types.Rational.prototype.toDisplayedString = plt.types.Rational.prototype.toWrittenString;
+
  
     plt.types.Rational.prototype.level = function() {
   return 0;
@@ -1398,10 +1437,13 @@ var plt = plt || {};
 		return plt.types.Complex.makeInstance(this.n, 0);
     };
  
-    plt.types.FloatPoint.prototype.toString = function() {
+    plt.types.FloatPoint.prototype.toWrittenString = function() {
   return this.n.toString();
     };
  
+    plt.types.FloatPoint.prototype.toDisplayedString = plt.types.FloatPoint.prototype.toWrittenString;
+
+
     plt.types.FloatPoint.prototype.isEqual = function(other) {
   return other instanceof plt.types.FloatPoint &&
       this.n == other.n;
@@ -1424,7 +1466,7 @@ var plt = plt || {};
     };
  
     plt.types.FloatPoint.prototype.divide = function(other) {
-  return plt.types.FloatPoint.makeInstance(this.n / other.n);
+        return plt.types.FloatPoint.makeInstance(this.n / other.n);
     };
  
  
@@ -1536,7 +1578,7 @@ var plt = plt || {};
 	
 	
 	plt.types.FloatPoint.prototype.round = function(){
-		if (plt.types.NumberTower.lessThan(this.subtract(FloatPoint.makeInstance(0.5)).floor(), this.floor()))
+		if (plt.types.NumberTower.lessThan(this.subtract(FloatPoint.makeInstance(0.5)).floor(), this.floor()).valueOf())
 			return this.floor();
 		else 
 			return this.ceiling();
@@ -1573,6 +1615,13 @@ var plt = plt || {};
 		return new plt.types.Complex(r, i);
 	};
 	
+        plt.types.Complex.prototype.toWrittenString = function() {
+             return this.r.toWrittenString() + "+" + this.i.toWrittenString()+"i";
+        };
+
+        plt.types.Complex.prototype.toDisplayedString = plt.types.Complex.prototype.toWrittenString;
+
+
 	plt.types.Complex.prototype.toExact = function() { 
 	  if (! this.isReal()) {
 	    throw new Error("inexact->exact: expects argument of type real number");
@@ -1623,19 +1672,19 @@ var plt = plt || {};
 
 	
 	plt.types.Complex.prototype.abs = function(){
-		if (!plt.types.NumberTower.equal(this.i, plt.types.Rational.ZERO))
+		if (!plt.types.NumberTower.equal(this.i, plt.types.Rational.ZERO).valueOf())
 			throw new Error("abs: expects argument of type real number");
 		return this.r.abs();
 	};
 	
 	plt.types.Complex.prototype.toInteger = function(){
-		if (!plt.types.NumberTower.equal(this.i, plt.types.Rational.ZERO))
+		if (!plt.types.NumberTower.equal(this.i, plt.types.Rational.ZERO).valueOf())
 			throw new Error("toInteger: expects argument of type real number");
 		return this.r.toInteger();
 	};
 	
 	plt.types.Complex.prototype.toFloat = function(){
-		if (!plt.types.NumberTower.equal(this.i, plt.types.Rational.ZERO))
+		if (!plt.types.NumberTower.equal(this.i, plt.types.Rational.ZERO).valueOf())
 			throw new Error("toFloat: expects argument of type real number");
 		return this.r.toFloat();
 	};
@@ -1909,7 +1958,7 @@ var plt = plt || {};
   var result = 
       plt.types.Rational.makeInstance(m.toInteger() % n.toInteger(),
             1);
-  if (plt.types.NumberTower.lessThan(result, plt.types.Rational.ZERO)) {
+  if (plt.types.NumberTower.lessThan(result, plt.types.Rational.ZERO).valueOf()) {
       return plt.types.NumberTower.add(result, n);
   }
   return result;

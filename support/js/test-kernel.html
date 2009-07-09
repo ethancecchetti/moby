@@ -175,8 +175,6 @@
 					upper, []));
 
 	  for (var i = 0; i < 60; i++) {
-//	      console.log(num + ": " + Kernel._lessthan_
-//			  (num, upper, []));
 	      this.assert(Kernel._lessthan_
 			  (num, upper, []));
 	      num = Kernel._plus_([num, Rational.ONE]);
@@ -446,8 +444,8 @@
 	},
 	
 	testNot : function(){
-		this.assert(Kernel.not(Logic.FALSE));
-		this.assert(!Kernel.not(Logic.TRUE));
+		this.assert(Kernel.not(Logic.FALSE).valueOf());
+		this.assert(!Kernel.not(Logic.TRUE).valueOf());
 	},
 	
 	testSymbol_dash__greaterthan_string : function(){
@@ -488,7 +486,7 @@
 		var lst3 = Cons.makeInstance(FloatPoint.makeInstance(5), Cons.makeInstance(FloatPoint.makeInstance(6), EMPTY));
 		var lst4 = Cons.makeInstance(FloatPoint.makeInstance(7), Cons.makeInstance(FloatPoint.makeInstance(8), EMPTY));
 		
-		var lst6 = Kernel.append(lst1, lst2, [lst3, lst4]);
+		var lst6 = Kernel.append(lst1, [lst2, lst3, lst4]);
 	
 		var i;
 		for (i = 1; i < 9; i++){
@@ -624,11 +622,18 @@
 		}
 	},
 	
+	testList_star_simple : function() {
+	    this.assert(Kernel.equal_question_(Kernel.list_star_(plt.types.String.makeInstance("hello"),
+	                                                         [plt.types.Empty.EMPTY]),
+                                               Kernel.list([plt.types.String.makeInstance("hello")])));
+	},
+
 	testList_star_ : function(){
-		var arr = [FloatPoint.makeInstance(1), FloatPoint.makeInstance(2)];
-		var lst1 = Cons.makeInstance(FloatPoint.makeInstance(3), Cons.makeInstance(FloatPoint.makeInstance(4), EMPTY));
+		var lst1 = Cons.makeInstance(FloatPoint.makeInstance(3),
+                                             Cons.makeInstance(FloatPoint.makeInstance(4), EMPTY));
 		
-		var lst2 = Kernel.list_star_(arr, lst1);
+		var lst2 = Kernel.list_star_(FloatPoint.makeInstance(1),
+                                             [FloatPoint.makeInstance(2), lst1]);
 		for (var i = 1; i <= 4; i++){
 			this.assert(Kernel.equal_question_(lst2.first(), FloatPoint.makeInstance(i)));
 			lst2 = lst2.rest();
@@ -868,8 +873,21 @@
 		Kernel.equal_question_(lst.first(), Char.makeInstance("h"));
 		lst = lst.rest();
 		Kernel.equal_question_(lst.first(), Char.makeInstance("e"));
-	}	
+	},
 	
+
+        testToWrittenString : function() {
+                this.assertEqual(String.makeInstance('hello').toWrittenString(),
+                                 '"hello"');
+                this.assertEqual(Kernel.make_dash_posn(FloatPoint.makeInstance(3),
+                                                       FloatPoint.makeInstance(4)).toWrittenString(),
+                                 '(make-posn 3 4)');
+                this.assertEqual(Logic.TRUE.toWrittenString(), "true");
+                this.assertEqual(Logic.FALSE.toWrittenString(), "false");
+        }
+
+
+
   }); 
   
 // ]]>
