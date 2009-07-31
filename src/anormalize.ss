@@ -1,15 +1,19 @@
 #lang s-exp "lang.ss"
 
-(require "elim-anon.ss")
+(require "box-local-defs.ss")
 (require "toplevel.ss")
 (require "env.ss")
 
 (define temp-begin "temp")
 (define higher-order-prims '(andmap argmax argmin build-list build-string compose
                              filter foldl foldr map memf ormap quicksort sort))
+(define ext-lang/other-prims '(quote cond if and or box unbox set-box!))
 (define first-order-prims (foldl (lambda (symb env)
                                    (env-remove env symb))
-                                 (env-extend-constant toplevel-env 'quote "primitive")
+                                 (foldl (lambda (symb env)
+                                          (env-extend-constant env symb "primitive"))
+                                        toplevel-env
+                                        ext-lang/other-prims)
                                  higher-order-prims))
 
 (define-struct linfo (return raise gensym))
@@ -63,15 +67,21 @@
 ;; fold-anormal-help: (listof s-expr) number -> linfo
 ;; folds anormal-help across a list of symbolic expressions
 (define (fold-anormal-help expr prims gensym)
-  (foldl (lambda (an-expr rest-info)
-           (local [(define rec-info (anormal-help an-expr prims (linfo-gensym rest-info)))]
-             (make-linfo (append (linfo-return rest-info)
-                                 (list (linfo-return rec-info)))
-                         (append (linfo-raise rest-info)
-                                 (linfo-raise rec-info))
-                         (linfo-gensym rec-info))))
-         (make-linfo empty empty gensym)
-         expr))
+  (local [(define reversed-result
+            (foldl (lambda (an-expr rest-info)
+                     (local [(define rec-info (anormal-help an-expr
+                                                            prims
+                                                            (linfo-gensym rest-info)))]
+                       (make-linfo (cons (linfo-return rec-info)
+                                         (linfo-return rest-info))
+                                   (append (reverse (linfo-raise rec-info))
+                                           (linfo-raise rest-info))
+                                   (linfo-gensym rec-info))))
+                   (make-linfo empty empty gensym)
+                   expr))]
+    (make-linfo (reverse (linfo-return reversed-result))
+                (reverse (linfo-raise reversed-result))
+                (linfo-gensym reversed-result))))
 
 ;; anormal-help: s-expr env number -> linfo
 ;; consumes a symbolic expression that is the output of ready-anormalize and a gensym counter
@@ -80,11 +90,12 @@
   (cond
     [(cons? expr)
      (cond
-       [(equal? (first expr) 'define)
+       [(or (equal? (first expr) 'define)
+            (equal? (first expr) 'set-box!))
         (local [(define arg-info (anormal-help (third expr) prims gensym))]
         ;(begin
           #;(printf "arg-info return is:\n ~a\n" (linfo-return arg-info))
-          (make-linfo (list 'define
+          (make-linfo (list (first expr)
                             (second expr)
                             (if (empty? (linfo-raise arg-info))
                                 (linfo-return arg-info)
@@ -107,6 +118,30 @@
                             (linfo-return arg-info))
                       empty
                       (linfo-gensym arg-info)))]
+       [(equal? (first expr) 'begin)
+        (local [(define set-box-exprs
+                  (foldl (lambda (an-expr rest-exprs)
+                           (local [(define anormal-expr
+                                     (anormal-help an-expr prims (linfo-gensym rest-exprs)))]
+                             (make-linfo (cons (linfo-return anormal-expr)
+                                               (linfo-return rest-exprs))
+                                         empty
+                                         (linfo-gensym anormal-expr))))
+                         (make-linfo empty empty gensym)
+                         (rest expr)))
+                (define body (anormal-help (first (reverse expr))
+                                           prims
+                                           (linfo-gensym set-box-exprs)))]
+          (make-linfo (cons 'begin
+                            (reverse (cons (if (empty? (linfo-raise body))
+                                               (linfo-return body)
+                                               (list 'local
+                                                     (linfo-raise body)
+                                                     (linfo-return body)))
+                                           (rest (linfo-return set-box-exprs)))))
+                            ;(reverse (linfo-return reversed-result))
+                      empty
+                      (linfo-gensym body)))]
        [(equal? (first expr) 'cond)
         (local [(define anormal-cases
                   (foldl (lambda (case rest-cases)

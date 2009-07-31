@@ -4,8 +4,8 @@
 (require "toplevel.ss")
 (require "env.ss")
 
-;(define def-prepend "o_")
-;(define arg-prepend "a_")
+;(define def-prepend "glob_")
+;(define arg-prepend "arg_")
 ;(define struct-prepend "s_")
 (define anon-prepend "anon")
 
@@ -41,7 +41,7 @@
          empty
          expr))
 
-;; struct-replace: symbol (listof symbol) -> symbol/false
+;; struct-replace?: symbol (listof symbol) -> symbol/false
 ;; takes a symbol and a list of struct names
 ;; returns the original symbol with the struct name prepened
 ;;   or false if the struct name did not appear in the list
@@ -264,9 +264,10 @@
 ;; returns the program with all locally defined procedures lifted to toplevel,
 ;;    all anonymous procedures lifted to local definitions, and all identifiers munged
 ;;    such that the program is ready to be anormalized
-(define (ready-anormalize expr)
-  (elim-anon (lift-program expr)))
+;(define (ready-anormalize expr)
+;  (elim-anon (lift-program expr)))
 
 (provide ensugar)
-(provide ready-anormalize)
+(provide elim-anon)
+;(provide ready-anormalize)
 
