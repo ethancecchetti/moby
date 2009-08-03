@@ -3,11 +3,12 @@
 (require "box-local-defs.ss")
 (require "toplevel.ss")
 (require "env.ss")
+;(require "permission.ss")
 
 (define temp-begin "temp")
 (define higher-order-prims '(andmap argmax argmin build-list build-string compose
                              filter foldl foldr map memf ormap quicksort sort))
-(define ext-lang/other-prims '(quote cond if and or box unbox set-box!))
+(define ext-lang/other-prims '(quote cond if and or local box unbox set-box!))
 (define first-order-prims (foldl (lambda (symb env)
                                    (env-remove env symb))
                                  (foldl (lambda (symb env)
@@ -17,6 +18,7 @@
                                  higher-order-prims))
 
 (define-struct linfo (return raise gensym))
+(define-struct fragment-out (expr))
 
 ;; get-struct-defs: (listof s-expr) -> (listof s-expr)
 ;; takes a list of toplevel statements (a program)
@@ -143,25 +145,33 @@
                       empty
                       (linfo-gensym body)))]
        [(equal? (first expr) 'cond)
-        (local [(define anormal-cases
-                  (foldl (lambda (case rest-cases)
-                           (local [(define condition
-                                     (if (equal? (first case) 'else)
-                                         (make-linfo 'else empty (linfo-gensym rest-cases))
-                                         (make-anormal (first case)
-                                                       prims
-                                                       (linfo-gensym rest-cases))))
-                                   (define body
-                                     (make-anormal (list (second case))
-                                                   prims
-                                                   (linfo-gensym condition)))]
-                             (make-linfo (cons (list (linfo-return condition)
-                                                     (first (linfo-return body)))
-                                               (linfo-return rest-cases))
-                                         empty
-                                         (linfo-gensym body))))
-                         (make-linfo empty empty gensym)
-                         (rest expr)))]
+        (local
+          [(define anormal-cases
+             (foldl
+              (lambda (case rest-cases)
+                (local [(define condition
+                          (if (equal? (first case) 'else)
+                              (make-linfo 'else empty (linfo-gensym rest-cases))
+                              (make-anormal (first case)
+                                            prims
+                                            (linfo-gensym rest-cases))))
+                        (define body
+                          (make-anormal (list (second case))
+                                        prims
+                                        (linfo-gensym condition)))]
+                  (make-linfo
+                   (cons (list (linfo-return condition)
+                               (if (and (cons? (linfo-return condition))
+                                        (or (equal? (first (linfo-return condition)) 'local)
+                                            (not (primitive? (first (linfo-return condition))
+                                                             prims))))
+                                   (make-fragment-out (first (linfo-return body)))
+                                   (first (linfo-return body))))
+                         (linfo-return rest-cases))
+                   empty
+                   (linfo-gensym body))))
+              (make-linfo empty empty gensym)
+              (rest expr)))]
           (make-linfo (cons 'cond (reverse (linfo-return anormal-cases)))
                       empty
                       (linfo-gensym anormal-cases)))]
@@ -173,12 +183,23 @@
                 (define else-clause (make-anormal (list (fourth expr))
                                                   prims
                                                   (linfo-gensym then-clause)))]
-          (make-linfo (list 'if
-                            (linfo-return condition)
-                            (first (linfo-return then-clause))
-                            (first (linfo-return else-clause)))
-                      (linfo-raise condition)
-                      (linfo-gensym else-clause)))]
+          (if (and (cons? (linfo-return condition))
+                   (not (primitive? (first (linfo-return condition)) prims)))
+              (make-linfo (list 'if
+                                (get-temp-symbol (linfo-gensym else-clause))
+                                (first (linfo-return then-clause))
+                                (first (linfo-return else-clause)))
+                          (append (linfo-raise condition)
+                                  (list (list 'define
+                                              (get-temp-symbol (linfo-gensym else-clause))
+                                              (linfo-return condition))))
+                          (add1 (linfo-gensym else-clause)))
+              (make-linfo (list 'if
+                                (linfo-return condition)
+                                (first (linfo-return then-clause))
+                                (first (linfo-return else-clause)))
+                          (linfo-raise condition)
+                          (linfo-gensym else-clause))))]
        [(or (equal? (first expr) 'and)
             (equal? (first expr) 'or))
         (local [(define options (make-anormal (rest expr) prims gensym))]
@@ -242,5 +263,9 @@
   (local [(define readied (ready-anormalize program))]
     (linfo-return (make-anormal readied (generate-prims readied) 0))))
 
-(provide anormalize)
+(provide/contract
+ [anormalize (any/c . -> . any/c)]
+ [struct fragment-out ([expr any/c])])
+;(provide anormalize)
+;(provide struct fragment-out)
   

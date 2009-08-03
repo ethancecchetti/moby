@@ -7,6 +7,7 @@
 (define statement-name 'statement)
 
 (define-struct finfo (return fragments gensym))
+;(define-struct fragment-out (expr))
 
 ;; split-def-list: (listof s-expr) -> (listof (listof s-expr))
 ;; consumes a list of definitions
@@ -166,6 +167,24 @@
                                     (finfo-gensym rec-info))))
                     (make-finfo empty empty gensym)
                     expr)])]
+    [(fragment-out? expr)
+     (local [(define rec-output
+               (fragment-help (list 'define
+                                    (cons (string->symbol
+                                           (string-append frag-prepend
+                                                          (number->string gensym)
+                                                          "_"
+                                                          (symbol->string name)))
+                                          args)
+                                    (fragment-out-expr expr))
+                              args
+                              name
+                              (add1 gensym)
+                              true))]
+       (make-finfo (second (finfo-return rec-output))
+                   (cons (finfo-return rec-output)
+                         (finfo-fragments rec-output))
+                   (finfo-gensym rec-output)))]
     [else (make-finfo expr empty gensym)]))
 
 ;; get-fragments: s-expr -> (listof s-expr)
