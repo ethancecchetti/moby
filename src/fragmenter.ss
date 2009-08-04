@@ -121,10 +121,11 @@
                             (if more-fragments?
                                 (second (finfo-return rec-rest))
                                 (finfo-return rec-rest)))
-                      (if more-fragments?
-                          (cons (finfo-return rec-rest)
-                                (finfo-fragments rec-rest))
-                          (finfo-fragments rec-rest))
+                      (append (finfo-fragments first-expr)
+                              (if more-fragments?
+                                  (cons (finfo-return rec-rest)
+                                        (finfo-fragments rec-rest))
+                                  (finfo-fragments rec-rest)))
                       (finfo-gensym rec-rest)))]
        [(equal? (first expr) 'set-box!)
         (local [(define fragmented-body
