@@ -18,7 +18,7 @@
                                  higher-order-prims))
 
 (define-struct linfo (return raise gensym))
-(define-struct fragment-out (expr))
+;(define-struct fragment-out (expr))
 
 ;; get-struct-defs: (listof s-expr) -> (listof s-expr)
 ;; takes a list of toplevel statements (a program)
@@ -65,6 +65,26 @@
 ;; takes a gensym counter and returns a symbol for temporary binding using that gensym
 (define (get-temp-symbol gensym)
   (string->symbol (string-append temp-begin (number->string gensym))))
+
+;; desugar-cond: s-expr -> s-expr
+;; consumes a symbolic expression
+;; returns a symantically equivalent expression with all cond statments desugared
+;;    into nexted ifs
+(define (desugar-cond expr)
+  (cond
+    [(cons? expr)
+     (cond
+       [(equal? (first expr) 'cond)
+        (foldr (lambda (case rest-cases) (list 'if
+                                               (if (equal? (first case) 'else)
+                                                   true
+                                                   (desugar-cond (first case)))
+                                               (desugar-cond (second case))
+                                               rest-cases))
+               '(error 'cond "all question results were false")
+               (rest expr))]
+       [else (map desugar-cond expr)])]
+    [else expr]))
 
 ;; fold-anormal-help: (listof s-expr) number -> linfo
 ;; folds anormal-help across a list of symbolic expressions
@@ -144,37 +164,6 @@
                             ;(reverse (linfo-return reversed-result))
                       empty
                       (linfo-gensym body)))]
-       [(equal? (first expr) 'cond)
-        (local
-          [(define anormal-cases
-             (foldl
-              (lambda (case rest-cases)
-                (local [(define condition
-                          (if (equal? (first case) 'else)
-                              (make-linfo 'else empty (linfo-gensym rest-cases))
-                              (make-anormal (first case)
-                                            prims
-                                            (linfo-gensym rest-cases))))
-                        (define body
-                          (make-anormal (list (second case))
-                                        prims
-                                        (linfo-gensym condition)))]
-                  (make-linfo
-                   (cons (list (linfo-return condition)
-                               (if (and (cons? (linfo-return condition))
-                                        (or (equal? (first (linfo-return condition)) 'local)
-                                            (not (primitive? (first (linfo-return condition))
-                                                             prims))))
-                                   (make-fragment-out (first (linfo-return body)))
-                                   (first (linfo-return body))))
-                         (linfo-return rest-cases))
-                   empty
-                   (linfo-gensym body))))
-              (make-linfo empty empty gensym)
-              (rest expr)))]
-          (make-linfo (cons 'cond (reverse (linfo-return anormal-cases)))
-                      empty
-                      (linfo-gensym anormal-cases)))]
        [(equal? (first expr) 'if)
         (local [(define condition (anormal-help (second expr) prims gensym))
                 (define then-clause (make-anormal (list (third expr))
@@ -260,12 +249,43 @@
 ;; anormalize: (listof s-expr) -> (listof s-expr)
 ;; takes a program in abstract syntax and rewrites it in anormal form
 (define (anormalize program)
-  (local [(define readied (ready-anormalize program))]
+  (local [(define readied (ready-anormalize (desugar-cond program)))]
     (linfo-return (make-anormal readied (generate-prims readied) 0))))
 
-(provide/contract
- [anormalize (any/c . -> . any/c)]
- [struct fragment-out ([expr any/c])])
-;(provide anormalize)
-;(provide struct fragment-out)
+(provide anormalize)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+#|
+       #;[(equal? (first expr) 'cond)
+        (local
+          [(define anormal-cases
+             (foldl
+              (lambda (case rest-cases)
+                (local [(define condition
+                          (if (equal? (first case) 'else)
+                              (make-linfo 'else empty (linfo-gensym rest-cases))
+                              (make-anormal (first case)
+                                            prims
+                                            (linfo-gensym rest-cases))))
+                        (define body
+                          (make-anormal (list (second case))
+                                        prims
+                                        (linfo-gensym condition)))]
+                  (make-linfo
+                   (cons (list (linfo-return condition)
+                               (if (and (cons? (linfo-return condition))
+                                        (or (equal? (first (linfo-return condition)) 'local)
+                                            (not (primitive? (first (linfo-return condition))
+                                                             prims))))
+                                   (make-fragment-out (first (linfo-return body)))
+                                   (first (linfo-return body))))
+                         (linfo-return rest-cases))
+                   empty
+                   (linfo-gensym body))))
+              (make-linfo empty empty gensym)
+              (rest expr)))]
+          (make-linfo (cons 'cond (reverse (linfo-return anormal-cases)))
+                      empty
+                      (linfo-gensym anormal-cases)))]
+|#
   
